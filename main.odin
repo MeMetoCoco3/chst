@@ -7,12 +7,17 @@ import "core:time"
 import "core:os"
 import "core:strings"
 MAX_CHAR_PER_LINE :: 60
-
 config_path:: "./config/jrnl.txt"
 
 TOP_BAR    :: "┌─────────────────────────────────────────────────────────────┐"
 BOTTOM_BAR :: "└─────────────────────────────────────────────────────────────┘"
 SPACES_19:: "                   "
+
+E_TIME_MEASURE:: enum{
+	YEAR,  MONTH, DAY,
+	HOUR, MINUTE, SECOND
+}
+
 Date :: datetime.DateTime
 A_Header :: struct
 {
@@ -157,7 +162,7 @@ main:: proc()
 	if len(os.args)==1 do CMD_default()
 
 	switch os.args[1]{
-		case "-g", "--get":
+		case "-gl", "--get_last":
 			if len(os.args) == 3 
 			{
 				n, _ := strconv.parse_int(os.args[2])
@@ -170,9 +175,130 @@ main:: proc()
 				fmt.eprintf("Not enough arguments for %v", os.args[1])
 				os.exit(1)
 			}
+		case "-g", "--get":
+			// "d12"
+			// "y2025"
+			// "m12"
+			// "h"
+			// "min"
+			// "s"
+			if len(os.args) >= 3 
+			{
+				fmt.println("WE START")
+				queries := make(map[E_TIME_MEASURE]string)
+				for arg in os.args[2:]
+				{
+					kind, val := parse_get_argument(arg)
+					queries[kind] = val
+				}
+				fmt.println("QUERIES: ", queries)
+				note_print_by_query(queries)
+			} 
+			else
+			{
+				fmt.eprintf("Not enough arguments for %v", os.args[1])
+				os.exit(1)
+			}
+
+
 		case:
 			fmt.eprintf("WHAT THE HELL IS EVEN THAT %v", os.args[1])
 	}
+}
+
+note_print_by_query:: proc(queries: map[E_TIME_MEASURE]string)
+{
+	data, ok := os.read_entire_file_from_filename(config_path, allocator = context.temp_allocator)
+
+	if !ok {
+		fmt.eprintf("Could not open chest file %v.", config_path)
+		os.exit(1)
+	}
+	
+	s_data := strings.split_lines(string(data))
+	if len(s_data) < 3 do return
+	for i:=2; i < len(s_data); 
+	{
+		if strings.starts_with(s_data[i], "[") 
+		{
+			should_print := true
+
+			if len(s_data[i]) != 24 do continue
+			for k, v in queries
+			{
+				switch k
+				{
+					case .YEAR:
+						if v != s_data[i][1:5] do should_print = false
+					case .MONTH:
+						if v != s_data[i][6:8] do should_print = false
+					case .DAY:
+						if v != s_data[i][9:11] do should_print = false
+					case .HOUR:
+						if v != s_data[i][12:14] do should_print = false
+					case .MINUTE:
+						if v != s_data[i][15:17] do should_print = false
+					case .SECOND:
+						if v != s_data[i][18:20] do should_print = false
+
+
+				}
+
+			}
+
+			num_lines_note, ok := strconv.parse_int(s_data[i][len(s_data[i])-2:]) 
+			if !ok {
+				fmt.eprintln("Line n %v, was not correctly formated", i)
+				return
+			}
+			if should_print do fmt.println(s_data[i:i+num_lines_note+1])
+
+			i += num_lines_note+1
+			// WE WRITE s_data[i:i+num_lines]
+		} 
+		else
+		{
+			i += 1
+			continue
+		}
+
+	}
+}
+
+
+parse_get_argument:: proc(arg: string)->(kind: E_TIME_MEASURE, val: string)
+{
+	if len(arg)<2 do return 
+	ok: bool
+	switch arg[0]
+	{
+	case 'y':
+		kind = .YEAR
+		val = arg[1:]
+		
+		
+	case 'm':
+		if arg[1]!='i'
+		{
+			kind = .MONTH
+			val = arg[1:]
+		}
+		else
+		{
+			kind = .MINUTE
+			val = arg[3:]
+		}
+	case 'd':
+		kind = .DAY
+		val = arg[1:]
+	case 'h':
+		kind = .HOUR
+		val = arg[1:]
+	case 's':
+		kind = .SECOND
+		val = arg[1:]
+	}
+	return
 }
 
 
@@ -296,13 +422,6 @@ notes_get_last:: proc(n: int)
 		{
 			fmt.println(TOP_BAR)
 			fmt.printf("│%v%v%v  │\n", SPACES_19, line[:21], SPACES_19)
-			// vals := parse_note_header(line)
-			// note.created_on.year = i64(vals[0])
-			// note.created_on.month = i8(vals[1])	
-			// note.created_on.day = i8(vals[2])	
-			// note.created_on.hour = i8(vals[3])	
-			// note.created_on.minute	= i8(vals[4])		
-			// note.created_on.second	= i8(vals[5])
 			trimed := strings.trim(line, " ")
 			length := len(trimed)
 
