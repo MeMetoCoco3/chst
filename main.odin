@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:time/datetime"
+import "core:strconv"
 import "core:time"
 import "core:os"
 import "core:strings"
@@ -9,6 +10,9 @@ MAX_CHAR_PER_LINE :: 60
 
 config_path:: "./config/jrnl.txt"
 
+TOP_BAR    :: "┌─────────────────────────────────────────────────────────────┐"
+BOTTOM_BAR :: "└─────────────────────────────────────────────────────────────┘"
+SPACES_19:: "                   "
 Date :: datetime.DateTime
 A_Header :: struct
 {
@@ -38,16 +42,13 @@ A_Note :: struct
 	content: string
 }
 
-note_get:: proc(from:= 0, to:= 0)->[]A_Note
-{
-	return {}
-}
 
 note_write:: proc(note: A_Note)
 {
 	content := note_format(note)
 	fd, err := os.open(config_path, os.O_WRONLY | os.O_APPEND, 0o664)
-	if err != os.ERROR_NONE {
+	if err != os.ERROR_NONE 
+	{
 		fmt.eprintf("ERROR OPENING CHEST: %v", err)
 		os.exit(1)
 	}
@@ -55,7 +56,8 @@ note_write:: proc(note: A_Note)
 	n: int
 	n, err = os.write_string(fd, content)
 
-	if err != os.ERROR_NONE {
+	if err != os.ERROR_NONE 
+	{
 		fmt.eprintf("ERROR WRITTING NEW NOTE: %v", err)
 		os.exit(1)
 	}
@@ -86,18 +88,18 @@ note_format:: proc(note: A_Note)-> string
 	ap:= strings.write_string
 
 	n, formated_content := content_formated(note.content)
-	ap(&sb, fmt.tprintf("%v,%v\n%v", date_formated(note), n, formated_content))
+	ap(&sb, fmt.tprintf("%v,%02d\n%v", date_formated(note), n, formated_content))
 	
 	return strings.to_string(sb)
 }
 
-content_formated:: proc(content: string)-> (n: int, val: string)
+content_formated:: proc(content: string)-> (lines_n: int, val: string)
 {
+	n := 0
 	sb: strings.Builder
-	ap:= strings.write_string
+	ap := strings.write_string
 
 	length_content := len(content)
-	fmt.println("THE LENGTH IS ", length_content)
     for n < length_content 
 	{
         end := n + MAX_CHAR_PER_LINE
@@ -105,17 +107,19 @@ content_formated:: proc(content: string)-> (n: int, val: string)
 		spaces := ""
 		index_space := 0
         if end > length_content {
+			spaces = get_n_chars(end-length_content, ' ')
             end = length_content
         } 
 		else 
 		{
 			index_space = get_char_index_reverse(content[n:end], ' ')
 			end -= index_space
-			spaces = get_n_chars(MAX_CHAR_PER_LINE-index_space, ' ')
+			spaces = get_n_chars(index_space, ' ')
 		}
 
         ap(&sb, fmt.tprintf("%v%v\n", content[n:end], spaces))
         n += MAX_CHAR_PER_LINE-index_space
+		lines_n += 1
     }
 
 	val = strings.to_string(sb)
@@ -150,7 +154,30 @@ get_char_index_reverse:: proc(line: string, char: rune)-> (index: int = -1)
 
 main:: proc()
 {
+	if len(os.args)==1 do CMD_default()
 
+	switch os.args[1]{
+		case "-g", "--get":
+			if len(os.args) == 3 
+			{
+				n, _ := strconv.parse_int(os.args[2])
+				notes_get_last(n)
+				fmt.println("GOOD")
+				os.exit(0)
+			} 
+			else
+			{
+				fmt.eprintf("Not enough arguments for %v", os.args[1])
+				os.exit(1)
+			}
+		case:
+			fmt.eprintf("WHAT THE HELL IS EVEN THAT %v", os.args[1])
+	}
+}
+
+
+CMD_default:: proc()
+{
 	if !os.exists(config_path) 
 	{
 		name := input("No config file found. Put a name to your chest")
@@ -161,8 +188,8 @@ main:: proc()
 	val := input("Tell me something:\n>")
 	note := note_new_now(val)
 	note_write(note)
+	os.exit(0)
 }
-
 
 
 chest_new :: proc(path: string, name: string)
@@ -214,7 +241,7 @@ date_formated_a_note :: proc(note: A_Note)->string
 	sb: strings.Builder
 	ap := strings.write_string
 
-	ap(&sb, fmt.tprintf("[%v,%v,%v,%v,%v,%v]", note.created_on.year, note.created_on.month, note.created_on.day, note.created_on.hour, note.created_on.minute, note.created_on.second))
+	ap(&sb, fmt.tprintf("[%04d,%02d,%02d,%02d,%02d,%02d]", note.created_on.year, note.created_on.month, note.created_on.day, note.created_on.hour, note.created_on.minute, note.created_on.second))
 	
 	return strings.to_string(sb)
 }
@@ -224,7 +251,7 @@ date_formated_datetime :: proc(date: Date)->string
 	sb: strings.Builder
 	ap := strings.write_string
 
-	ap(&sb, fmt.tprintf("[%v,%v,%v,%v,%v,%v]", date.year, date.month, date.day, date.hour, date.minute, date.second))
+	ap(&sb, fmt.tprintf("[%04d,%02d,%02d,%02d,%02d,%02d]", date.year, date.month, date.day, date.hour, date.minute, date.second))
 	
 	return strings.to_string(sb)
 }
@@ -247,6 +274,81 @@ input :: proc(prompt: string) -> (val: string)  {
 	return val
 }
 
+notes_get_last:: proc(n: int)
+{
+	note: A_Note
+	note_p := 0
+	count := 0
 
+	data, ok := os.read_entire_file_from_filename(config_path, allocator = context.temp_allocator)
+	if !ok
+	{
+		fmt.eprintf("ERROR reading file %v", config_path)
+		os.exit(1)
+	}
+	file := string(data)
+
+	split_lines := strings.split_lines(file)
+	#reverse for line, i in split_lines
+	{
+		if strings.trim(line, " ") == "" do continue
+		if strings.starts_with(line, "[") 
+		{
+			fmt.println(TOP_BAR)
+			fmt.printf("│%v%v%v  │\n", SPACES_19, line[:21], SPACES_19)
+			// vals := parse_note_header(line)
+			// note.created_on.year = i64(vals[0])
+			// note.created_on.month = i8(vals[1])	
+			// note.created_on.day = i8(vals[2])	
+			// note.created_on.hour = i8(vals[3])	
+			// note.created_on.minute	= i8(vals[4])		
+			// note.created_on.second	= i8(vals[5])
+			trimed := strings.trim(line, " ")
+			length := len(trimed)
+
+			num_lines, _:= strconv.parse_int(trimed[length-2:])
+
+
+			start:= i+1
+			end := num_lines + start
+			for n in start..<end
+			{
+				fmt.printf("│%v│\n", split_lines[n])
+			}
+			fmt.println(BOTTOM_BAR)
+
+
+
+
+			// full_content: string
+			// if end >= len(split_lines) do full_content = strings.concatenate(split_lines[i:]); else do full_content = strings.concatenate(split_lines[i:end])
+			// note.content, _= strings.clone(full_content)
+		} else do continue
+		count += 1
+		if count >= n do break
+	}
+	
+	if count < n do	fmt.printfln("We found just %d in your chest", count)
+}
+
+
+
+
+parse_note_header::proc(data:string)->(vals: [7]int)
+{
+	date_trim := strings.trim(data, "[ ")
+
+	n:= 0
+	for val in strings.split_iterator(&date_trim, ",") {
+		vals[n], _ = strconv.parse_int(val)
+		n+=1
+	}
+
+	length := len(date_trim)
+
+	vals[6], _= strconv.parse_int(date_trim[length-2:])
+	fmt.println("I PARSED IT LIKETHIS: ", vals[6])
+	return 
+}
 
 out:: proc(){if true do os.exit(1)}
