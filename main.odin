@@ -251,7 +251,7 @@ note_print_by_query:: proc(queries: map[E_TIME_MEASURE]string)
 				fmt.eprintln("Line n %v, was not correctly formated", i)
 				return
 			}
-			if should_print do fmt.println(s_data[i:i+num_lines_note+1])
+			if should_print do lines_print(s_data[i:i+num_lines_note+1])
 
 			i += num_lines_note+1
 			// WE WRITE s_data[i:i+num_lines]
@@ -436,12 +436,6 @@ notes_get_last:: proc(n: int)
 			}
 			fmt.println(BOTTOM_BAR)
 
-
-
-
-			// full_content: string
-			// if end >= len(split_lines) do full_content = strings.concatenate(split_lines[i:]); else do full_content = strings.concatenate(split_lines[i:end])
-			// note.content, _= strings.clone(full_content)
 		} else do continue
 		count += 1
 		if count >= n do break
@@ -451,7 +445,13 @@ notes_get_last:: proc(n: int)
 }
 
 
-
+lines_print:: proc(lines: []string)
+{
+	fmt.println(TOP_BAR)
+	fmt.printf("│%v%v%v  │\n", SPACES_19, lines[0][:21], SPACES_19)
+	for line in lines[1:] do fmt.printf("│%v│\n", line)
+	fmt.println(BOTTOM_BAR)
+}
 
 parse_note_header::proc(data:string)->(vals: [7]int)
 {
