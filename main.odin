@@ -19,8 +19,7 @@ A_Header :: struct
 		day: i8,
 		hour: i8,
 		minute: i8,
-		second: i8,
-	},
+		second: i8, },
 	owner: string,
 	count_notes: u32,
 }
@@ -87,7 +86,6 @@ note_format:: proc(note: A_Note)-> string
 	ap:= strings.write_string
 
 	n, formated_content := content_formated(note.content)
-	fmt.println("FORMATED ONTENT", formated_content)
 	ap(&sb, fmt.tprintf("%v,%v\n%v", date_formated(note), n, formated_content))
 	
 	return strings.to_string(sb)
@@ -103,17 +101,51 @@ content_formated:: proc(content: string)-> (n: int, val: string)
     for n < length_content 
 	{
         end := n + MAX_CHAR_PER_LINE
+
+		spaces := ""
+		index_space := 0
         if end > length_content {
             end = length_content
-        }
+        } 
+		else 
+		{
+			index_space = get_char_index_reverse(content[n:end], ' ')
+			end -= index_space
+			spaces = get_n_chars(MAX_CHAR_PER_LINE-index_space, ' ')
+		}
 
-        ap(&sb, fmt.tprintf("%v\n", content[n:end]))
-        n += MAX_CHAR_PER_LINE
+        ap(&sb, fmt.tprintf("%v%v\n", content[n:end], spaces))
+        n += MAX_CHAR_PER_LINE-index_space
     }
 
 	val = strings.to_string(sb)
 	return
 }
+
+get_n_chars:: proc(n: int, char: u8)-> string
+{
+	sb: strings.Builder
+	ap:= strings.write_byte
+	for i in 0..=n
+	{
+		ap(&sb, char)
+	}
+	return strings.to_string(sb)
+}
+get_char_index_reverse:: proc(line: string, char: rune)-> (index: int = -1)
+{
+	index = 0
+	#reverse for c in line
+	{
+		if c == char
+		{
+			break
+		}
+		index += 1
+	}
+	return 
+}
+
 
 
 main:: proc()
