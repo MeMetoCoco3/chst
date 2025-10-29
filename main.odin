@@ -7,7 +7,7 @@ import "core:time"
 import "core:os"
 import "core:strings"
 MAX_CHAR_PER_LINE :: 60
-config_path:: "./config/jrnl.txt"
+config_path:: "/home/vidof/work/projects/chst/config/jrnl.txt"
 
 TOP_BAR    :: "┌─────────────────────────────────────────────────────────────┐"
 BOTTOM_BAR :: "└─────────────────────────────────────────────────────────────┘"
@@ -162,6 +162,32 @@ main:: proc()
 	if len(os.args)==1 do CMD_default()
 
 	switch os.args[1]{
+		case "-h", "--help":
+			fmt.println(`
+			Usage:
+				chst [command] [arguments]
+
+			Commands:
+				-h, --help
+					Show this help message and exit.
+
+				-gl, --get_last <n>
+					Get the last <n> journal entries.
+					Example: jrnl --get_last 5
+
+				-g, --get <filters...>
+					Get entries filtered by time-based queries.
+					Each filter must follow one of these patterns:
+						d<day>     - filter by day (e.g. d12 for 12th day)
+						m<month>   - filter by month number (e.g. m11 for November)
+						y<year>    - filter by year (e.g. y2025)
+						h<hour>    - filter by hour (e.g. h14 for 2PM)
+						min<min>   - filter by minute (e.g. min30)
+						s<second>  - filter by second (e.g. s45)
+					Example:
+						jrnl --get y2025 m10 d29
+					(Filters can be combined.)`)
+
 		case "-gl", "--get_last":
 			if len(os.args) == 3 
 			{
@@ -307,7 +333,6 @@ CMD_default:: proc()
 	if !os.exists(config_path) 
 	{
 		name := input("No config file found. Put a name to your chest")
-		// path := input(fmt.tprintf("Tell my a path for your chest. Default is %v", config_path))
 		chest_new(config_path, name)
 	}
 
@@ -418,7 +443,7 @@ notes_get_last:: proc(n: int)
 	#reverse for line, i in split_lines
 	{
 		if strings.trim(line, " ") == "" do continue
-		if strings.starts_with(line, "[") 
+		if strings.starts_with(line, "[") && len(line)>21
 		{
 			fmt.println(TOP_BAR)
 			fmt.printf("│%v%v%v  │\n", SPACES_19, line[:21], SPACES_19)
@@ -436,9 +461,9 @@ notes_get_last:: proc(n: int)
 			}
 			fmt.println(BOTTOM_BAR)
 
-		} else do continue
-		count += 1
-		if count >= n do break
+			count += 1
+			if count >= n do break
+		} 
 	}
 	
 	if count < n do	fmt.printfln("We found just %d in your chest", count)
