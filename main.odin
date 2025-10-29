@@ -193,7 +193,6 @@ main:: proc()
 			{
 				n, _ := strconv.parse_int(os.args[2])
 				notes_get_last(n)
-				fmt.println("GOOD")
 				os.exit(0)
 			} 
 			else
@@ -280,7 +279,6 @@ note_print_by_query:: proc(queries: map[E_TIME_MEASURE]string)
 			if should_print do lines_print(s_data[i:i+num_lines_note+1])
 
 			i += num_lines_note+1
-			// WE WRITE s_data[i:i+num_lines]
 		} 
 		else
 		{
@@ -445,21 +443,28 @@ notes_get_last:: proc(n: int)
 		if strings.trim(line, " ") == "" do continue
 		if strings.starts_with(line, "[") && len(line)>21
 		{
-			fmt.println(TOP_BAR)
-			fmt.printf("│%v%v%v  │\n", SPACES_19, line[:21], SPACES_19)
-			trimed := strings.trim(line, " ")
-			length := len(trimed)
+			num_lines_note, ok := strconv.parse_int(split_lines[i][len(split_lines[i])-2:]) 
+			lines_print(split_lines[i:i+num_lines_note+1])
 
-			num_lines, _:= strconv.parse_int(trimed[length-2:])
-
-
-			start:= i+1
-			end := num_lines + start
-			for n in start..<end
-			{
-				fmt.printf("│%v│\n", split_lines[n])
-			}
-			fmt.println(BOTTOM_BAR)
+			//
+			// fmt.println(TOP_BAR)
+			// date := parse_note_header(line)
+			// string_date := fmt.tprintf("%02d/%02d/%02d %02d:%02d:%02d", date[0], date[1], date[2], date[3], date[4], date[5])
+			//
+			//
+			// fmt.printf("│%v  %v  %v│\n", SPACES_19, string_date, SPACES_19)
+			// trimed := strings.trim(line, " ")
+			// length := len(trimed)
+			//
+			// num_lines, _:= strconv.parse_int(trimed[length-2:])
+			//
+			// start:= i+1
+			// end := num_lines + start
+			// for n in start..<end
+			// {
+			// 	fmt.printf("│%v│\n", split_lines[n])
+			// }
+			// fmt.println(BOTTOM_BAR)
 
 			count += 1
 			if count >= n do break
@@ -473,7 +478,11 @@ notes_get_last:: proc(n: int)
 lines_print:: proc(lines: []string)
 {
 	fmt.println(TOP_BAR)
-	fmt.printf("│%v%v%v  │\n", SPACES_19, lines[0][:21], SPACES_19)
+
+	date := parse_note_header(lines[0])
+	string_date := fmt.tprintf("%02d/%02d/%02d %02d:%02d:%02d", date[0], date[1], date[2], date[3], date[4], date[5])
+
+	fmt.printf("│%v  %v  %v│\n", SPACES_19, string_date, SPACES_19)
 	for line in lines[1:] do fmt.printf("│%v│\n", line)
 	fmt.println(BOTTOM_BAR)
 }
@@ -481,17 +490,11 @@ lines_print:: proc(lines: []string)
 parse_note_header::proc(data:string)->(vals: [7]int)
 {
 	date_trim := strings.trim(data, "[ ")
-
 	n:= 0
 	for val in strings.split_iterator(&date_trim, ",") {
 		vals[n], _ = strconv.parse_int(val)
 		n+=1
 	}
-
-	length := len(date_trim)
-
-	vals[6], _= strconv.parse_int(date_trim[length-2:])
-	fmt.println("I PARSED IT LIKETHIS: ", vals[6])
 	return 
 }
 
