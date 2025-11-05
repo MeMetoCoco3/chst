@@ -185,7 +185,7 @@ main:: proc()
 						min<min>   - filter by minute (e.g. min30)
 						s<second>  - filter by second (e.g. s45)
 					Example:
-						jrnl --get y2025 m10 d29
+						chst --get y2025 m10 d29
 					(Filters can be combined.)`)
 
 		case "-gl", "--get_last":
