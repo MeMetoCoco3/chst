@@ -189,9 +189,12 @@ main:: proc()
 					(Filters can be combined.)`)
 
 		case "-gl", "--get_last":
-			if len(os.args) == 3 
+			if len(os.args) >= 2 
 			{
-				n, _ := strconv.parse_int(os.args[2])
+				n := 1
+				if len(os.args) == 3 {
+					n, _ = strconv.parse_int(os.args[2])
+				}
 				notes_get_last(n)
 				os.exit(0)
 			} 
@@ -428,7 +431,7 @@ notes_get_last:: proc(n: int)
 	note: A_Note
 	note_p := 0
 	count := 0
-
+	fmt.println("WE ARE IN LAST")
 	data, ok := os.read_entire_file_from_filename(config_path, allocator = context.temp_allocator)
 	if !ok
 	{
@@ -445,26 +448,6 @@ notes_get_last:: proc(n: int)
 		{
 			num_lines_note, ok := strconv.parse_int(split_lines[i][len(split_lines[i])-2:]) 
 			lines_print(split_lines[i:i+num_lines_note+1])
-
-			//
-			// fmt.println(TOP_BAR)
-			// date := parse_note_header(line)
-			// string_date := fmt.tprintf("%02d/%02d/%02d %02d:%02d:%02d", date[0], date[1], date[2], date[3], date[4], date[5])
-			//
-			//
-			// fmt.printf("│%v  %v  %v│\n", SPACES_19, string_date, SPACES_19)
-			// trimed := strings.trim(line, " ")
-			// length := len(trimed)
-			//
-			// num_lines, _:= strconv.parse_int(trimed[length-2:])
-			//
-			// start:= i+1
-			// end := num_lines + start
-			// for n in start..<end
-			// {
-			// 	fmt.printf("│%v│\n", split_lines[n])
-			// }
-			// fmt.println(BOTTOM_BAR)
 
 			count += 1
 			if count >= n do break
